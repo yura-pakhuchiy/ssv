@@ -22,12 +22,13 @@ Build stage Docker image:
     - apk add --no-cache git
     - git clone https://github.com/ethereum/eth2-ssv.git
     - cd eth2-ssv
+    - git checkout stage
     - docker build -t $IMAGE_NAME:$CI_BUILD_REF -f Dockerfile .
     - DOCKER_LOGIN_TO_INFRA_STAGE_REPO=`$ECRLOGIN_INFRA_STAGE`
     - docker tag $IMAGE_NAME:$CI_BUILD_REF $DOCKER_REPO_INFRA_STAGE:$CI_BUILD_REF
     - $DOCKER_LOGIN_TO_INFRA_STAGE_REPO && docker push $DOCKER_REPO_INFRA_STAGE:$CI_BUILD_REF
   only:
-    - stage
+    - ci
 
 Deploy to blox-infra-stage cluster:
   stage: deploy
@@ -41,4 +42,4 @@ Deploy to blox-infra-stage cluster:
     - mv kubectl /usr/bin/
     - .k8/scripts/deploy-yamls-on-k8s.sh $DOCKER_REPO_INFRA_STAGE $CI_BUILD_REF ssv $APP_REPLICAS_INFRA_STAGE blox-infra-stage kubernetes-admin@blox-infra stage.bloxinfra.com $K8S_API_VERSION
   only:
-    - stage
+    - ci
