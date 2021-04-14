@@ -122,4 +122,6 @@ spec:
         - name: HOST_DNS
 #          value: "ssv-lb.stage.bloxinfra.com"
           value: ""
+        - name: GENESIS_EPOCH
+          value: 33046
       hostNetwork: true            
