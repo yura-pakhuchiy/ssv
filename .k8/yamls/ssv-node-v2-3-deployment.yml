@@ -125,5 +125,5 @@ spec:
         - name: GENESIS_EPOCH
           value: "34165"
         - name: LOGGER_LEVEL
-            value: "debug"
+          value: "debug"
       hostNetwork: true            
