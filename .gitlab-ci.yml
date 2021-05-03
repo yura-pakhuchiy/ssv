@@ -22,7 +22,7 @@ Build stage Docker image:
     - apk add --no-cache git
     - git clone https://github.com/ethereum/eth2-ssv.git
     - cd eth2-ssv
-    - git checkout blox
+    - git checkout stage
     - docker build -t $IMAGE_NAME:$CI_BUILD_REF -f Dockerfile .
     - DOCKER_LOGIN_TO_INFRA_STAGE_REPO=`$ECRLOGIN_INFRA_STAGE`
     - docker tag $IMAGE_NAME:$CI_BUILD_REF $DOCKER_REPO_INFRA_STAGE:$CI_BUILD_REF
