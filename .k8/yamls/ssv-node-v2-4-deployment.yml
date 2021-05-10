@@ -126,4 +126,11 @@ spec:
           value: "34165"
         - name: LOGGER_LEVEL
           value: "debug"
+        volumeMounts:
+        - mountPath: "/data/db"
+          name: ssv-node-v2-4
+      volumes:
+      - persistentVolumeClaim:
+          claimName: ssv-node-v2-4
+        name: ssv-node-v2-4
       hostNetwork: true            
