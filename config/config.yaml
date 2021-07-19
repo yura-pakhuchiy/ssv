@@ -32,4 +32,4 @@ bootnode:
   ExternalIP:
   PrivateKey:
 
-MetricsAPIPort: 1500
+MetricsAPIPort: 15000
