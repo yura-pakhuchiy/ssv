@@ -31,3 +31,5 @@ OperatorPrivateKey:
 bootnode:
   ExternalIP:
   PrivateKey:
+
+MetricsAPIPort: 1500

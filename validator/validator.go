@@ -167,3 +167,9 @@ func (v *Validator) GetIBFT(r beacon.RoleType) (ibft.IBFT, bool) {
 	i, exist := v.ibfts[r]
 	return i, exist
 }
+
+// GetQueue returns msgQueue
+func (v *Validator) GetQueue() *msgqueue.MessageQueue {
+	return v.msgQueue
+}
+

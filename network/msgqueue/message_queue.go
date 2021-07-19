@@ -109,6 +109,13 @@ func (q *MessageQueue) MsgCount(index string) int {
 	return len(q.queue[index])
 }
 
+// MsgCount will return a count of messages by their index
+func (q *MessageQueue) Len() int {
+	q.msgMutex.Lock()
+	defer q.msgMutex.Unlock()
+	return len(q.queue)
+}
+
 // DeleteMessagesWithIds deletes all msgs by the given id
 func (q *MessageQueue) DeleteMessagesWithIds(ids []string) {
 	q.msgMutex.Lock()

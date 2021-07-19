@@ -38,6 +38,7 @@ func (i *ibftImpl) listenToNetworkMessages() {
 	go func() {
 		for msg := range msgChan {
 			if msg.Message != nil && i.equalIdentifier(msg.Message.Lambda) {
+				i.logger.Debug("adding ibft msg to queue", zap.String("type", msg.Message.Type.String()))
 				i.msgQueue.AddMessage(&network.Message{
 					SignedMessage: msg,
 					Type:          network.NetworkMsg_IBFTType,

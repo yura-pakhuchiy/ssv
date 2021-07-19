@@ -21,6 +21,7 @@ const (
 	runningIbftsCountValidator = "running_ibfts_count_validator"
 	runningIbftsCountAll       = "running_ibfts_count_all"
 	countValidators            = "count_validators"
+	queueCount                 = "queue_count"
 )
 
 var roles = []beacon.RoleType{
@@ -83,6 +84,11 @@ func (c *validatorsCollector) Collect() ([]string, error) {
 			}
 			results = append(results, fmt.Sprintf("%s{pubKey=\"%v\"} %d",
 				runningIbftsCountValidator, hex.EncodeToString(pk), runningIbftsValidator))
+		}
+
+		if v, exist := c.validatorCtrl.GetValidator(pubKey.SerializeToHexStr()); exist {
+			results = append(results, fmt.Sprintf("%s{pubKey=\"%v\"} %d",
+				queueCount, hex.EncodeToString(pk), v.GetQueue().Len()))
 		}
 
 		// counting connected peers
