@@ -53,6 +53,7 @@ func New(opt beacon.Options) (beacon.Beacon, error) {
 		network:  core.NetworkFromString(opt.Network),
 		client:   autoClient,
 		graffiti: []byte("BloxStaking"),
+		blockChannel: make(chan spec.SignedBeaconBlock),
 	}
 
 	return _client, nil
@@ -81,7 +82,7 @@ func (gc *goClient) StartReceivingBlocks() {
 			time.Sleep(time.Second * 1)
 		}
 	}
-	gc.logger.Error("client is not support SignedBeaconBlockProvider")
+	gc.logger.Error("client does not support SignedBeaconBlockProvider")
 }
 
 func (gc *goClient) GetDuties(epoch spec.Epoch, validatorIndices []spec.ValidatorIndex) ([]*api.AttesterDuty, error) {
