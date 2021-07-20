@@ -54,7 +54,7 @@ type Instance struct {
 	ChangeRoundMessages msgcont.MessageContainer
 
 	// event loop
-	eventQueue *eventqueue.Queue
+	eventQueue eventqueue.EventQueue
 
 	// channels
 	stageChangedChan chan proto.RoundState
@@ -202,6 +202,7 @@ func (i *Instance) Stop() {
 func (i *Instance) Stopped() bool {
 	i.stopLock.Lock()
 	defer i.stopLock.Unlock()
+
 	return i.stopped
 }
 
@@ -214,6 +215,7 @@ func (i *Instance) BumpRound() {
 func (i *Instance) Stage() proto.RoundState {
 	i.stageLock.Lock()
 	defer i.stageLock.Unlock()
+
 	return i.State.Stage
 }
 

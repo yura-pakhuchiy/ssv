@@ -109,7 +109,7 @@ func (q *MessageQueue) MsgCount(index string) int {
 	return len(q.queue[index])
 }
 
-// MsgCount will return a count of messages by their index
+// Len will return a count of messages by their index
 func (q *MessageQueue) Len() int {
 	q.msgMutex.Lock()
 	defer q.msgMutex.Unlock()

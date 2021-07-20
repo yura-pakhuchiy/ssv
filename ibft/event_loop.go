@@ -56,13 +56,15 @@ loop:
 		if i.MsgQueue.MsgCount(msgqueue.IBFTMessageIndexKey(i.State.Lambda, i.State.SeqNumber, i.State.Round)) > 0 {
 			i.Logger.Debug("adding ibft message to event queue - waiting for done")
 			wg.Add(1)
-			i.eventQueue.Add(func() {
+			if added := i.eventQueue.Add(func() {
 				_, err := i.ProcessMessage()
 				if err != nil {
 					i.Logger.Error("msg pipeline error", zap.Error(err))
 				}
 				wg.Done()
-			})
+			}); !added {
+				wg.Done()
+			}
 			// If we added a task to the queue, wait for it to finish and then loop again to add more
 			wg.Wait()
 			i.Logger.Debug("done with ibft message")
@@ -85,7 +87,7 @@ loop:
 		if i.MsgQueue.MsgCount(msgqueue.IBFTAllRoundChangeIndexKey(i.State.Lambda, i.State.SeqNumber)) > 0 {
 			wg.Add(1)
 			i.Logger.Debug("adding round change message to event queue - waiting for done")
-			i.eventQueue.Add(func() {
+			if added := i.eventQueue.Add(func() {
 				found, err := i.ProcessChangeRoundPartialQuorum()
 				if err != nil {
 					i.Logger.Error("failed finding partial change round quorum", zap.Error(err))
@@ -98,7 +100,9 @@ loop:
 				}
 				wg.Done()
 				i.Logger.Debug("done with round change message")
-			})
+			}); !added {
+				wg.Done()
+			}
 			// If we added a task to the queue, wait for it to finish and then loop again to add more
 			wg.Wait()
 		} else {
