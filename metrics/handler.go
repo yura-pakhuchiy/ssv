@@ -34,7 +34,7 @@ func (mh *metricsHandler) Start(mux *http.ServeMux, addr string) error {
 	mh.logger.Info("setup metrics collection")
 
 	runtime.SetBlockProfileRate(1)
-	runtime.SetMutexProfileFraction(1)
+	runtime.SetMutexProfileFraction(1000)
 
 	mux.HandleFunc("/metrics", func(res http.ResponseWriter, req *http.Request) {
 		if err := mh.handleHTTP(res, req); err != nil {
