@@ -12,16 +12,16 @@ type EventQueue interface {
 	ClearAndStop()
 }
 
-// Queue thread safe implementation of EventQueue
-type Queue struct {
+// queue thread safe implementation of EventQueue
+type queue struct {
 	stop  bool
 	queue []Event
 	lock  sync.Mutex
 }
 
-// New returns a new instance of Queue
+// New returns a new instance of queue
 func New() EventQueue {
-	q := Queue{
+	q := queue{
 		queue: make([]Event, 0),
 		lock:  sync.Mutex{},
 	}
@@ -29,7 +29,7 @@ func New() EventQueue {
 }
 
 // Add will add an an item to the queue, thread safe.
-func (q *Queue) Add(e Event) bool {
+func (q *queue) Add(e Event) bool {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -42,7 +42,7 @@ func (q *Queue) Add(e Event) bool {
 }
 
 // Pop will return and delete an an item from the queue, thread safe.
-func (q *Queue) Pop() Event {
+func (q *queue) Pop() Event {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -59,7 +59,7 @@ func (q *Queue) Pop() Event {
 }
 
 // ClearAndStop will clear the queue disable adding more items to it, thread safe.
-func (q *Queue) ClearAndStop() {
+func (q *queue) ClearAndStop() {
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
