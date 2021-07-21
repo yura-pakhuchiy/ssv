@@ -38,7 +38,9 @@ func (i *ibftImpl) listenToNetworkMessages() {
 	go func() {
 		for msg := range msgChan {
 			if msg.Message != nil && i.equalIdentifier(msg.Message.Lambda) {
-				i.logger.Debug("adding ibft msg to queue", zap.String("type", msg.Message.Type.String()))
+				i.logger.Debug("adding ibft msg to queue",
+					zap.String("type", msg.Message.Type.String()),
+					zap.Uint64s("signerIds", msg.SignerIds))
 				i.msgQueue.AddMessage(&network.Message{
 					SignedMessage: msg,
 					Type:          network.NetworkMsg_IBFTType,
@@ -53,6 +55,8 @@ func (i *ibftImpl) listenToNetworkDecidedMessages() {
 	go func() {
 		for msg := range decidedChan {
 			if msg.Message != nil && i.equalIdentifier(msg.Message.Lambda) {
+				i.logger.Debug("adding decided msg to queue",
+					zap.Uint64s("signerIds", msg.SignerIds))
 				i.msgQueue.AddMessage(&network.Message{
 					SignedMessage: msg,
 					Type:          network.NetworkMsg_DecidedType,
@@ -68,6 +72,8 @@ func (i *ibftImpl) listenToSyncMessages() {
 	go func() {
 		for msg := range syncChan {
 			if msg.Msg != nil && i.equalIdentifier(msg.Msg.Lambda) {
+				i.logger.Debug("adding sync msg to queue",
+					zap.String("FromPeerID", msg.Msg.FromPeerID))
 				i.msgQueue.AddMessage(&network.Message{
 					SyncMessage: msg.Msg,
 					Stream:      msg.Stream,

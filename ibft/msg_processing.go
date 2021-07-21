@@ -10,8 +10,11 @@ import (
 
 // ProcessMessage pulls messages from the queue to be processed sequentially
 func (i *Instance) ProcessMessage() (processedMsg bool, err error) {
-	i.Logger.Debug("getting ibft message")
+	i.Logger.Debug("processing ibft message")
 	if netMsg := i.MsgQueue.PopMessage(msgqueue.IBFTMessageIndexKey(i.State.Lambda, i.State.SeqNumber, i.State.Round)); netMsg != nil {
+		i.Logger.Debug("ibft message was popped from queue",
+			zap.Uint64s("singerIds", netMsg.SignedMessage.SignerIds),
+			zap.String("type", netMsg.SignedMessage.Message.Type.String()))
 		var pp pipeline.Pipeline
 		switch netMsg.SignedMessage.Message.Type {
 		case proto.RoundState_PrePrepare:
