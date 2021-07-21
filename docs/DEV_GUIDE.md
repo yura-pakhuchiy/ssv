@@ -29,6 +29,7 @@
   + [Run](#run)
     - [Local network with 4 nodes with Docker Compose](#local-network-with-4-nodes-with-docker-compose)
     - [Local network with 4 nodes for debugging with Docker Compose](#local-network-with-4-nodes-for-debugging-with-docker-compose)
+    - [Local network with 4 nodes with Podman](#local-network-with-4-nodes-with-podman)
 * [Coding Standards](#coding-standards)
 
 ## Usage
@@ -150,6 +151,47 @@ $ make docker-all
 ```shell
 $ make docker-debug 
 ```
+
+#### Local network with 4 nodes with Podman
+
+[Podman](https://podman.io) is a daemonless container engine for developing, managing,
+and running OCI Containers on Linux systems. Containers can either be run as root or in rootless mode.
+
+
+On MacOS / Windows - need to run a remote client that connects to a Linux VM where Podman is running.
+
+Install the following:
+* [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+* [Vagrant](https://www.vagrantup.com/downloads)
+  * disksize plugin: \
+    `$ vagrant plugin install vagrant-disksize`
+* [Podman](https://podman.io/getting-started/installation)
+
+Once setup is done, spin up a VM from the root folder of this project:
+
+```shell
+$ vagrant up
+```
+
+It will mount the folder to `/vagarnt/ssv` on the VM.
+
+On your desktop run the following to add a client:
+```shell
+$ export CONTAINER_HOST=ssh://vagrant@127.0.0.1:2222/run/user/1000/podman/podman.sock
+$ export CONTAINER_SSHKEY=$PWD/.vagrant/machines/default/virtualbox/private_key
+$ podman system connection add --identity "$CONTAINER_SSHKEY" vagrant $CONTAINER_HOST
+```
+Check that podman works
+```shell
+$ podman -c vagrant info
+```
+
+On Linux:
+* [Podman](https://podman.io/getting-started/installation)
+
+Podman is compatible with docker, you can `alias docker=podman`.
+
+
 
 ## Coding Standards
 
