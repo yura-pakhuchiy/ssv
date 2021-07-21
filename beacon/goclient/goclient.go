@@ -76,6 +76,10 @@ func (gc *goClient) StartReceivingBlocks() {
 				gc.logger.Error("failed to fetch head block", zap.Error(err))
 				time.Sleep(time.Second * 2)
 				continue
+			} else if signedBeaconBlock == nil && signedBeaconBlock.Message == nil {
+				gc.logger.Debug("got empty message")
+				time.Sleep(time.Second * 1)
+				continue
 			}
 			gc.highestValidSlot = uint64(signedBeaconBlock.Message.Slot)
 			gc.blockChannel <- *signedBeaconBlock
