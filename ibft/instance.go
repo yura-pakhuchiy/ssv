@@ -175,7 +175,8 @@ func (i *Instance) ForceDecide(msg *proto.SignedMessage) {
 func (i *Instance) Stop() {
 	// stop can be run just once
 	i.runStopOnce.Do(func() {
-		i.eventQueue.Add(func() {
+		//i.eventQueue.Add(func() {
+		go func() {
 			i.Logger.Info("stopping iBFT instance...")
 			i.stopLock.Lock()
 			defer i.stopLock.Unlock()
@@ -194,7 +195,9 @@ func (i *Instance) Stop() {
 			}
 
 			i.Logger.Info("stopped iBFT instance")
-		})
+		}()
+
+		//})
 	})
 }
 
