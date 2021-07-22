@@ -181,7 +181,7 @@ func (i *Instance) Stop() {
 	})
 }
 
-// Stopped returns true if instance is stopped
+// stop stops the instance
 func (i *Instance) stop() {
 	i.Logger.Info("stopping iBFT instance...")
 	i.stopLock.Lock()
