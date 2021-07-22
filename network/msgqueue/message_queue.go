@@ -138,12 +138,12 @@ func (q *MessageQueue) deleteMessageFromAllIndexes(indexes []string, id string) 
 	for _, indx := range indexes {
 		newIndexQ := make([]messageContainer, 0)
 		for _, msg := range q.queue[indx] {
+			if len(msg.id) == 0{
+				logex.GetLogger().Debug("MSG IS NIL!!!", zap.Any("msg", msg))
+			}
 			if msg.id != id {
 				newIndexQ = append(newIndexQ, msg)
 			}
-		}
-		if len(newIndexQ) == 0 {
-			logex.GetLogger().Debug("newIndexQ is empty!", zap.Strings("indexes", indexes), zap.String("id", id))
 		}
 		q.queue[indx] = newIndexQ
 	}
