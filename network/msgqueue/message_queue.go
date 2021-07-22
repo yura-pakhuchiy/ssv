@@ -158,11 +158,13 @@ func (q *MessageQueue) PurgeIndexedMessages(index string) {
 	q.queue[index] = make([]messageContainer, 0)
 }
 
+// QueueData struct to represent data in metric
 type QueueData struct {
-	Q       map[string][]*messageContainer
-	Msgs map[string]*messageContainer
+	Q    map[string][]messageContainer
+	Msgs map[string]messageContainer
 }
 
+// Dump returning data
 func (q *MessageQueue) Dump() QueueData {
 	q.msgMutex.Lock()
 	defer q.msgMutex.Unlock()

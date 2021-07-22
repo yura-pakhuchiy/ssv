@@ -203,6 +203,7 @@ func (i *Instance) stop() {
 	i.Logger.Info("stopped iBFT instance")
 }
 
+// Stopped is stopping queue work
 func (i *Instance) Stopped() bool {
 	i.stopLock.Lock()
 	defer i.stopLock.Unlock()

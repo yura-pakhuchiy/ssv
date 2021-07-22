@@ -22,7 +22,6 @@ const (
 	runningIbftsCountValidator = "running_ibfts_count_validator"
 	runningIbftsCountAll       = "running_ibfts_count_all"
 	countValidators            = "count_validators"
-	queueCount                 = "queue_count"
 )
 
 var roles = []beacon.RoleType{
