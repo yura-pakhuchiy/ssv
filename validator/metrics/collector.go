@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/bloxapp/ssv/beacon"
 	"github.com/bloxapp/ssv/ibft/proto"
@@ -87,8 +88,15 @@ func (c *validatorsCollector) Collect() ([]string, error) {
 		}
 
 		if v, exist := c.validatorCtrl.GetValidator(pubKey.SerializeToHexStr()); exist {
-			results = append(results, fmt.Sprintf("%s{pubKey=\"%v\"} %d",
-				queueCount, hex.EncodeToString(pk), v.GetQueue().Len()))
+			//results = append(results, fmt.Sprintf("%s{pubKey=\"%v\"} %d",
+			//	queueCount, hex.EncodeToString(pk), v.GetQueue().Len()))
+			queueData := v.GetQueue().Dump()
+			raw, err := json.Marshal(&queueData)
+			if err != nil {
+				c.logger.Error("could not marshal queue data", zap.Error(err))
+			}
+			c.logger.Debug("validator message queue", zap.String("pubKey", pubKey.SerializeToHexStr()),
+				zap.String("queueData", string(raw)))
 		}
 
 		// counting connected peers
