@@ -32,9 +32,8 @@ func (i *Instance) ProcessMessage() (processedMsg bool, err error) {
 			return true, err
 		}
 		return true, nil
-	} else {
-		i.Logger.Debug("could not find ibft message in queue")
 	}
+	i.Logger.Debug("could not find ibft message in queue")
 	return false, nil
 }
 
