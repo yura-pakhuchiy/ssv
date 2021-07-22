@@ -2,8 +2,11 @@ package msgqueue
 
 import (
 	"github.com/bloxapp/ssv/network"
+	"github.com/bloxapp/ssv/utils/logex"
 	"github.com/pborman/uuid"
+	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 // IndexFunc is the function that indexes messages to be later pulled by those indexes
@@ -22,16 +25,16 @@ type messageContainer struct {
 type MessageQueue struct {
 	msgMutex    sync.Mutex
 	indexFuncs  []IndexFunc
-	queue       map[string][]*messageContainer // = map[index][messageContainer.id]messageContainer
-	allMessages map[string]*messageContainer
+	queue       map[string][]messageContainer // = map[index][messageContainer.id]messageContainer
+	allMessages map[string]messageContainer
 }
 
 // New is the constructor of MessageQueue
 func New() *MessageQueue {
 	return &MessageQueue{
 		msgMutex:    sync.Mutex{},
-		queue:       make(map[string][]*messageContainer),
-		allMessages: make(map[string]*messageContainer),
+		queue:       make(map[string][]messageContainer),
+		allMessages: make(map[string]messageContainer),
 		indexFuncs: []IndexFunc{
 			iBFTMessageIndex(),
 			iBFTAllRoundChangeIndex(),
@@ -60,7 +63,7 @@ func (q *MessageQueue) AddMessage(msg *network.Message) {
 	}
 
 	// add it to queue
-	msgContainer := &messageContainer{
+	msgContainer := messageContainer{
 		id:      uuid.New(),
 		msg:     msg,
 		indexes: indexes,
@@ -68,7 +71,7 @@ func (q *MessageQueue) AddMessage(msg *network.Message) {
 
 	for _, idx := range indexes {
 		if q.queue[idx] == nil {
-			q.queue[idx] = make([]*messageContainer, 0)
+			q.queue[idx] = make([]messageContainer, 0)
 		}
 		q.queue[idx] = append(q.queue[idx], msgContainer)
 	}
@@ -90,13 +93,17 @@ func (q *MessageQueue) MessagesForIndex(index string) map[string]*network.Messag
 
 // PopMessage will return a message by its index if found, will also delete all other index occurrences of that message
 func (q *MessageQueue) PopMessage(index string) *network.Message {
+	start := time.Now()
 	q.msgMutex.Lock()
 	defer q.msgMutex.Unlock()
 
 	if len(q.queue[index]) > 0 {
+		logex.GetLogger().Debug("pop message start after mutex", zap.Int64("duration", time.Since(start).Milliseconds()))
+		start = time.Now()
 		c := q.queue[index][0]
 		// delete the msg from all the indexes
 		q.deleteMessageFromAllIndexes(c.indexes, c.id)
+		logex.GetLogger().Debug("pop message done", zap.Int64("duration", time.Since(start).Milliseconds()))
 		return c.msg
 	}
 	return nil
@@ -129,15 +136,18 @@ func (q *MessageQueue) DeleteMessagesWithIds(ids []string) {
 
 func (q *MessageQueue) deleteMessageFromAllIndexes(indexes []string, id string) {
 	for _, indx := range indexes {
-		newIndexQ := make([]*messageContainer, 0)
+		newIndexQ := make([]messageContainer, 0)
 		for _, msg := range q.queue[indx] {
 			if msg.id != id {
 				newIndexQ = append(newIndexQ, msg)
 			}
 		}
+		if len(newIndexQ) == 0 {
+			logex.GetLogger().Debug("newIndexQ is empty!", zap.Strings("indexes", indexes), zap.String("id", id))
+		}
 		q.queue[indx] = newIndexQ
 	}
-	q.allMessages[id] = nil
+	delete(q.allMessages, id)
 }
 
 // PurgeIndexedMessages will delete all indexed messages for the given index
@@ -145,5 +155,5 @@ func (q *MessageQueue) PurgeIndexedMessages(index string) {
 	q.msgMutex.Lock()
 	defer q.msgMutex.Unlock()
 
-	q.queue[index] = make([]*messageContainer, 0)
+	q.queue[index] = make([]messageContainer, 0)
 }
