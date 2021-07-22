@@ -175,30 +175,34 @@ func (i *Instance) ForceDecide(msg *proto.SignedMessage) {
 func (i *Instance) Stop() {
 	// stop can be run just once
 	i.runStopOnce.Do(func() {
-		go func() {
-			i.Logger.Info("stopping iBFT instance...")
-			i.stopLock.Lock()
-			defer i.stopLock.Unlock()
-
-			i.stopped = true
-			i.roundTimer.Stop()
-			i.SetStage(proto.RoundState_Stopped)
-			i.eventQueue.ClearAndStop()
-
-			// stop stage chan
-			i.stageLock.Lock()
-			defer i.stageLock.Unlock()
-			if i.stageChangedChan != nil {
-				close(i.stageChangedChan)
-				i.stageChangedChan = nil
-			}
-
-			i.Logger.Info("stopped iBFT instance")
-		}()
+		if added := i.eventQueue.Add(i.stop); !added {
+			i.Logger.Debug("could not add 'stop' to event queue")
+		}
 	})
 }
 
 // Stopped returns true if instance is stopped
+func (i *Instance) stop() {
+	i.Logger.Info("stopping iBFT instance...")
+	i.stopLock.Lock()
+	defer i.stopLock.Unlock()
+
+	i.stopped = true
+	i.roundTimer.Stop()
+	i.SetStage(proto.RoundState_Stopped)
+	i.eventQueue.ClearAndStop()
+
+	// stop stage chan
+	i.stageLock.Lock()
+	defer i.stageLock.Unlock()
+	if i.stageChangedChan != nil {
+		close(i.stageChangedChan)
+		i.stageChangedChan = nil
+	}
+
+	i.Logger.Info("stopped iBFT instance")
+}
+
 func (i *Instance) Stopped() bool {
 	i.stopLock.Lock()
 	defer i.stopLock.Unlock()
