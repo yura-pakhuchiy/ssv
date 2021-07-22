@@ -227,7 +227,7 @@ func (i *Instance) SetStage(stage proto.RoundState) {
 	i.State.Stage = stage
 
 	// Delete all queue messages when decided, we do not need them anymore.
-	if i.State.Stage == proto.RoundState_Decided || i.State.Stage == proto.RoundState_Stopped {
+	if stage == proto.RoundState_Decided || stage == proto.RoundState_Stopped {
 		for j := uint64(1); j <= i.State.Round; j++ {
 			i.MsgQueue.PurgeIndexedMessages(msgqueue.IBFTMessageIndexKey(i.State.Lambda, i.State.SeqNumber, j))
 		}

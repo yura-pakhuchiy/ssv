@@ -76,8 +76,12 @@ func (gc *goClient) StartReceivingBlocks() {
 				gc.logger.Error("failed to fetch head block", zap.Error(err))
 				time.Sleep(time.Second * 2)
 				continue
-			} else if signedBeaconBlock == nil || signedBeaconBlock.Message == nil {
-				gc.logger.Debug("got empty message")
+			} else if signedBeaconBlock == nil {
+				gc.logger.Debug("received empty block")
+				time.Sleep(time.Second * 1)
+				continue
+			} else if signedBeaconBlock.Message == nil {
+				gc.logger.Debug("received empty message")
 				time.Sleep(time.Second * 1)
 				continue
 			}

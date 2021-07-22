@@ -54,20 +54,22 @@ loop:
 
 		var wg sync.WaitGroup
 		if i.MsgQueue.MsgCount(msgqueue.IBFTMessageIndexKey(i.State.Lambda, i.State.SeqNumber, i.State.Round)) > 0 {
-			i.Logger.Debug("adding ibft message to event queue - waiting for done")
+			//i.Logger.Debug("adding ibft message to event queue - waiting for done")
 			wg.Add(1)
 			if added := i.eventQueue.Add(func() {
 				_, err := i.ProcessMessage()
 				if err != nil {
 					i.Logger.Error("msg pipeline error", zap.Error(err))
 				}
+				//i.Logger.Debug("done with ibft message")
 				wg.Done()
 			}); !added {
+				i.Logger.Debug("could not add ibft message to event queue")
+				time.Sleep(time.Millisecond * 100)
 				wg.Done()
 			}
 			// If we added a task to the queue, wait for it to finish and then loop again to add more
 			wg.Wait()
-			i.Logger.Debug("done with ibft message")
 		} else {
 			time.Sleep(time.Millisecond * 100)
 		}
@@ -85,8 +87,8 @@ loop:
 
 		var wg sync.WaitGroup
 		if i.MsgQueue.MsgCount(msgqueue.IBFTAllRoundChangeIndexKey(i.State.Lambda, i.State.SeqNumber)) > 0 {
+			//i.Logger.Debug("adding round change message to event queue")
 			wg.Add(1)
-			i.Logger.Debug("adding round change message to event queue - waiting for done")
 			if added := i.eventQueue.Add(func() {
 				found, err := i.ProcessChangeRoundPartialQuorum()
 				if err != nil {
@@ -98,9 +100,11 @@ loop:
 					// if not found, wait 1 second and then finish to try again
 					time.Sleep(time.Second * 1)
 				}
+				//i.Logger.Debug("done with round change message")
 				wg.Done()
-				i.Logger.Debug("done with round change message")
 			}); !added {
+				i.Logger.Debug("could not add round change to event queue")
+				time.Sleep(time.Second * 1)
 				wg.Done()
 			}
 			// If we added a task to the queue, wait for it to finish and then loop again to add more
