@@ -186,22 +186,22 @@ func (i *Instance) stop() {
 	i.Logger.Info("stopping iBFT instance...")
 	i.stopLock.Lock()
 	defer i.stopLock.Unlock()
-	i.Logger.Info("STOPPING IBFT -> pass stopLock")
+	i.Logger.Debug("STOPPING IBFT -> pass stopLock")
 	i.stopped = true
 	i.roundTimer.Stop()
-	i.Logger.Info("STOPPING IBFT -> stopped round timer")
+	i.Logger.Debug("STOPPING IBFT -> stopped round timer")
 	i.SetStage(proto.RoundState_Stopped)
-	i.Logger.Info("STOPPING IBFT -> set stage to stop")
+	i.Logger.Debug("STOPPING IBFT -> set stage to stop")
 	i.eventQueue.ClearAndStop()
-	i.Logger.Info("STOPPING IBFT -> cleared event queue")
+	i.Logger.Debug("STOPPING IBFT -> cleared event queue")
 
 	// stop stage chan
 	i.stageLock.Lock()
 	defer i.stageLock.Unlock()
-	i.Logger.Info("STOPPING IBFT -> passed stageLock")
+	i.Logger.Debug("STOPPING IBFT -> passed stageLock")
 	if i.stageChangedChan != nil {
 		close(i.stageChangedChan)
-		i.Logger.Info("STOPPING IBFT -> closed stageChangedChan")
+		i.Logger.Debug("STOPPING IBFT -> closed stageChangedChan")
 		i.stageChangedChan = nil
 	}
 
