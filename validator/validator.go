@@ -53,7 +53,7 @@ func New(opt Options, db basedb.IDb) *Validator {
 	logger := opt.Logger.With(zap.String("pubKey", opt.Share.PublicKey.SerializeToHexStr())).
 		With(zap.Uint64("node_id", opt.Share.NodeID))
 
-	msgQueue := msgqueue.New()
+	msgQueue := msgqueue.New() // TODO might need to create queue for each ibft in order to prevent long time lock
 	ibfts := make(map[beacon.RoleType]ibft.IBFT)
 	ibfts[beacon.RoleTypeAttester] = setupIbftController(beacon.RoleTypeAttester, logger, db, opt.Network, msgQueue, opt.Share)
 	//ibfts[beacon.RoleAggregator] = setupIbftController(beacon.RoleAggregator, logger, db, opt.Network, msgQueue, opt.Share) TODO not supported for now
