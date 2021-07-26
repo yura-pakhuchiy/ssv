@@ -53,6 +53,9 @@ func (i *Instance) forceDecidedPipeline() pipeline.Pipeline {
 
 // CommittedAggregatedMsg returns a signed message for the state's committed value with the max known signatures
 func (i *Instance) CommittedAggregatedMsg() (*proto.SignedMessage, error) {
+	if i.State.DecidedMsg != nil {
+		return i.State.DecidedMsg, nil
+	}
 	if i.State.PreparedValue == nil {
 		return nil, errors.New("state not prepared")
 	}
@@ -99,9 +102,21 @@ func (i *Instance) uponCommitMsg() pipeline.Pipeline {
 			i.Logger.Info("commit iBFT instance",
 				zap.String("Lambda", hex.EncodeToString(i.State.Lambda)), zap.Uint64("round", i.State.Round),
 				zap.Int("got_votes", len(sigs)))
-			//  instance might not have value yet, need to set the msg value and round
-			i.State.PreparedRound = signedMessage.Message.Round
-			i.State.PreparedValue = signedMessage.Message.Value
+			var decided *proto.SignedMessage
+			var err error
+			for _, msg := range sigs {
+				if decided == nil {
+					decided, err = msg.DeepCopy()
+					if err != nil {
+						i.Logger.Error("could not copy message")
+					}
+				} else {
+					if err := decided.Aggregate(msg); err != nil {
+						i.Logger.Error("could not aggregate message")
+					}
+				}
+			}
+			i.State.DecidedMsg = decided
 			// mark instance commit
 			i.SetStage(proto.RoundState_Decided)
 			i.Stop()
