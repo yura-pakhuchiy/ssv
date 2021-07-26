@@ -1,6 +1,11 @@
 package eventqueue
 
-import "sync"
+import (
+	"github.com/bloxapp/ssv/utils/logex"
+	"go.uber.org/zap"
+	"sync"
+	"time"
+)
 
 // Event represent some function
 type Event func()
@@ -43,6 +48,7 @@ func (q *queue) Add(e Event) bool {
 
 // Pop will return and delete an an item from the queue, thread safe.
 func (q *queue) Pop() Event {
+	start := time.Now()
 	q.lock.Lock()
 	defer q.lock.Unlock()
 
@@ -53,6 +59,7 @@ func (q *queue) Pop() Event {
 	if len(q.queue) > 0 {
 		ret := q.queue[0]
 		q.queue = q.queue[1:len(q.queue)]
+		logex.GetLogger().Debug("pop message from event queue done", zap.Int("queueLen", len(q.queue)), zap.Int64("duration", time.Since(start).Milliseconds()))
 		return ret
 	}
 	return nil

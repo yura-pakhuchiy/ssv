@@ -48,6 +48,7 @@ instanceLoop:
 		}
 	}
 	// when main instance loop breaks, nil current instance
+	i.logger.Debug("instance existed, nilling currentInstance", zap.Error(err))
 	i.currentInstance = nil
 	return retRes, err
 }

@@ -99,8 +99,8 @@ func (i *Instance) uponCommitMsg() pipeline.Pipeline {
 			i.Logger.Info("commit iBFT instance",
 				zap.String("Lambda", hex.EncodeToString(i.State.Lambda)), zap.Uint64("round", i.State.Round),
 				zap.Int("got_votes", len(sigs)))
-
 			// mark instance commit
+			i.State.PreparedValue = signedMessage.Message.Value // instance might not have value yet, need to set the msg value.
 			i.SetStage(proto.RoundState_Decided)
 			i.Stop()
 		}
