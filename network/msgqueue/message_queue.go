@@ -27,8 +27,8 @@ type MessageQueue struct {
 	msgMutex    sync.RWMutex
 	indexFuncs  []IndexFunc
 	queue       map[string][]messageContainer // = map[index][messageContainer.id]messageContainer
-	q *cache.Cache
-	msgs *cache.Cache
+	q           *cache.Cache
+	msgs        *cache.Cache
 	allMessages map[string]messageContainer
 }
 
@@ -36,8 +36,8 @@ type MessageQueue struct {
 func New() *MessageQueue {
 	return &MessageQueue{
 		msgMutex:    sync.RWMutex{},
-		q: cache.New(time.Minute*10, time.Minute*11),
-		msgs: cache.New(time.Minute*10, time.Minute*11),
+		q:           cache.New(time.Minute*10, time.Minute*11),
+		msgs:        cache.New(time.Minute*10, time.Minute*11),
 		queue:       make(map[string][]messageContainer),
 		allMessages: make(map[string]messageContainer),
 		indexFuncs: []IndexFunc{
@@ -166,7 +166,7 @@ func (q *MessageQueue) deleteMessageFromAllIndexes(indexes []string, id string) 
 		if raw, exist := q.q.Get(indx); exist {
 			if msgContainers, ok := raw.([]messageContainer); ok {
 				for _, msg := range msgContainers {
-					if len(msg.id) == 0{
+					if len(msg.id) == 0 {
 						logex.GetLogger().Debug("MSG IS NIL!!!", zap.Any("msg", msg))
 					}
 					if msg.id != id {
@@ -191,6 +191,8 @@ func (q *MessageQueue) PurgeIndexedMessages(index string) {
 
 // QueueData struct to represent data in metric
 type QueueData struct {
+	QCache    *cache.Cache
+	MsgsCache *cache.Cache
 	Q    map[string][]messageContainer
 	Msgs map[string]messageContainer
 }
@@ -201,6 +203,8 @@ func (q *MessageQueue) Dump() QueueData {
 	defer q.msgMutex.Unlock()
 
 	return QueueData{
+		q.q,
+		q.msgs,
 		q.queue,
 		q.allMessages,
 	}

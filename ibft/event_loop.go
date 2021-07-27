@@ -54,7 +54,7 @@ loop:
 
 		var wg sync.WaitGroup
 		if i.MsgQueue.MsgCount(msgqueue.IBFTMessageIndexKey(i.State.Lambda, i.State.SeqNumber, i.State.Round)) > 0 {
-			//i.Logger.Debug("adding ibft message to event queue - waiting for done")
+			i.Logger.Debug("adding ibft message to event queue - waiting for done")
 			wg.Add(1)
 			if added := i.eventQueue.Add(func() {
 				_, err := i.ProcessMessage()
