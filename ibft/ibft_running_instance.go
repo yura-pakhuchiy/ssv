@@ -50,6 +50,7 @@ instanceLoop:
 	// when main instance loop breaks, nil current instance
 	i.logger.Debug("instance existed, nilling currentInstance", zap.Error(err))
 	i.currentInstance = nil
+	i.logger.Debug("instance nilled")
 	return retRes, err
 }
 

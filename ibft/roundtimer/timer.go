@@ -1,6 +1,7 @@
 package roundtimer
 
 import (
+	"github.com/bloxapp/ssv/utils/logex"
 	"sync"
 	"time"
 )
@@ -70,9 +71,11 @@ func (t *RoundTimer) Stop() {
 func (t *RoundTimer) eventLoop() {
 	select {
 	case <-t.timer.C:
+		logex.GetLogger().Debug("eventLoop timerChan cancel")
 		t.resC <- true
 		t.markStopped()
 	case <-t.cancelC:
+		logex.GetLogger().Debug("eventLoop cancelChan trigger")
 		t.resC <- false
 		t.markStopped()
 	}
