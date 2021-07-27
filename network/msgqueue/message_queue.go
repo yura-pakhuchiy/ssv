@@ -191,8 +191,8 @@ func (q *MessageQueue) PurgeIndexedMessages(index string) {
 
 // QueueData struct to represent data in metric
 type QueueData struct {
-	QCache    *cache.Cache
-	MsgsCache *cache.Cache
+	QCache    map[string]cache.Item
+	MsgsCache map[string]cache.Item
 	Q    map[string][]messageContainer
 	Msgs map[string]messageContainer
 }
@@ -203,8 +203,8 @@ func (q *MessageQueue) Dump() QueueData {
 	defer q.msgMutex.Unlock()
 
 	return QueueData{
-		q.q,
-		q.msgs,
+		q.q.Items(),
+		q.msgs.Items(),
 		q.queue,
 		q.allMessages,
 	}
