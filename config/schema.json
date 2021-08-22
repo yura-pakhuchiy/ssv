@@ -1,0 +1,202 @@
+{
+  "$id": "github.com/bloxapp/ssv/config/schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SSV Operator Config",
+  "description": "Configuration for running an SSV Operator node",
+  "type": "object",
+  "required": [
+    "eth2", "eth1", "db"
+  ],
+  "properties": {
+    "global": {
+      "description": "Global configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "LogLevel": {
+          "type": "string",
+          "description": "Logger's log level",
+          "default": "info",
+          "enum": ["info", "debug", "warn", "error"]
+        },
+        "LogFormat": {
+          "type": "string",
+          "description": "Logger's encoding format",
+          "default": "console",
+          "enum": ["console", "json"]
+        },
+        "LogLevelFormat": {
+          "type": "string",
+          "description": "Logger's level format",
+          "default": "capitalColor",
+          "enum": ["capitalColor", "capital", "lowercase", "lowercaseColor"]
+        }
+      }
+    },
+    "db": {
+      "description": "Database configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "Path"
+      ],
+      "properties": {
+        "Path": {
+          "type": "string",
+          "description": "Path for storage",
+          "examples": ["./data/db"]
+        },
+        "Type": {
+          "type": "string",
+          "description": "Type of DB",
+          "enum": ["badger-db", "badger-memory"]
+        }
+      }
+    },
+    "eth2": {
+      "description": "Eth2 configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "BeaconNodeAddr"
+      ],
+      "properties": {
+        "BeaconNodeAddr": {
+          "type": "string",
+          "description": "Beacon node address",
+          "examples": ["prater-4000-ext.bloxinfra.com:80"]
+        },
+        "Network": {
+          "type": "string",
+          "description": "Desired Network",
+          "default": "prater"
+        }
+      }
+    },
+    "eth1": {
+      "description": "Eth1 configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ETH1Addr"],
+      "properties": {
+        "ETH1Addr": {
+          "type": "string"
+        }
+      }
+    },
+    "p2p": {
+      "description": "P2P configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "HostAddress": {
+          "type": "string",
+          "description": "External ip node is exposed for discovery",
+          "examples": ["84.121.44.102"]
+        },
+        "HostDns": {
+          "type": "string",
+          "description": "External DNS node is exposed for discovery",
+          "examples": ["example.domain.com"]
+        },
+        "TcpPort": {
+          "type": "integer",
+          "default": 13000
+        },
+        "UdpPort": {
+          "type": "integer",
+          "default": 12000
+        },
+        "DiscoveryType": {
+          "type": "string",
+          "description": "Method to use in discovery",
+          "default": "discv5",
+          "enum": ["discv5", "mdns"]
+        },
+        "Enr": {
+          "type": "string",
+          "description": "ENR used in discovery"
+        },
+        "RequestTimeout": {
+          "type": "string",
+          "default": "5s"
+        },
+        "MaxBatchResponse": {
+          "type": "integer",
+          "default": 50
+        }
+      }
+    },
+    "ssv": {
+      "description": "SSV configuration",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "GenesisEpoch": {
+          "type": "integer",
+          "description": "Genesis Epoch SSV node will start"
+        },
+        "DutyLimit": {
+          "type": "integer",
+          "description": "Max slots to wait for duty to start",
+          "default": 32
+        },
+        "ValidatorOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "SignatureCollectionTimeout": {
+              "type": "string",
+              "description": "Timeout for signature collection after consensus",
+              "default": "5s"
+            },
+            "Shares": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "NodeID": {
+                    "type": "integer",
+                    "description": "Local share node ID"
+                  },
+                  "PublicKey": {
+                    "type": "string",
+                    "description": "Local validator public key"
+                  },
+                  "ShareKey": {
+                    "type": "string",
+                    "description": "Local share private key"
+                  },
+                  "Committee": {
+                    "type": "object",
+                    "description": "Local validator committee array, maps a share pub key to a node ID",
+                    "patternProperties": {
+                      "^[a-z0-9]*$": {
+                        "type": "integer",
+                        "description": "Node ID"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "OperatorPrivateKey": {
+      "description": "Operator private key, will be generated if not provided",
+      "type": "string"
+    },
+    "MetricsAPIPort": {
+      "description": "Port of metrics api",
+      "type": "integer",
+      "examples": [15000]
+    },
+    "EnableProfile": {
+      "description": "Flag that indicates whether go profiling tools are enabled",
+      "type": "boolean",
+      "default": false
+    }
+  }
+}
