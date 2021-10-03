@@ -40,4 +40,5 @@ type Client interface {
 	EventsSubject() pubsub.Subscriber
 	Start() error
 	Sync(fromBlock *big.Int) error
+	CurrentBlock() (uint64, error)
 }
