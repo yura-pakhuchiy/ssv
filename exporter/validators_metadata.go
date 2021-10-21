@@ -2,8 +2,10 @@ package exporter
 
 import (
 	"github.com/bloxapp/ssv/beacon"
+	"github.com/bloxapp/ssv/exporter/ibft"
 	"github.com/bloxapp/ssv/validator"
 	validatorstorage "github.com/bloxapp/ssv/validator/storage"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"time"
 )
@@ -44,5 +46,19 @@ func (exp *exporter) updateValidatorsMetadata(shares []*validatorstorage.Share, 
 	onUpdated := func(pk string, meta *beacon.ValidatorMetadata) {
 		validator.ReportValidatorStatus(pk, meta, exp.logger)
 	}
-	beacon.UpdateValidatorsMetadataBatch(pks, exp.metaDataReadersQueue, exp.storage, exp.beacon, onUpdated, batchSize)
+	beacon.UpdateValidatorsMetadataBatch(pks, exp.metaDataReadersQueue, exp, exp.beacon, onUpdated, batchSize)
+}
+
+// UpdateValidatorMetadata updates all relevant components with the updated metadata
+func (exp *exporter) UpdateValidatorMetadata(pk string, metadata *beacon.ValidatorMetadata) error {
+	if err := exp.validatorStorage.(beacon.ValidatorMetadataStorage).UpdateValidatorMetadata(pk, metadata); err != nil {
+		return errors.Wrap(err, "failed to update share")
+	}
+	if err := exp.storage.UpdateValidatorMetadata(pk, metadata); err != nil {
+		return errors.Wrap(err, "failed to update validator information")
+	}
+	if decidedReader := exp.getDecidedReader(pk); decidedReader != nil {
+		decidedReader.(ibft.ShareHolder).Share().Metadata = metadata
+	}
+	return nil
 }

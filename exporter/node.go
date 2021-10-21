@@ -21,6 +21,7 @@ import (
 	"github.com/herumi/bls-eth-go-binary/bls"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	"sync"
 	"time"
 )
 
@@ -76,6 +77,10 @@ type exporter struct {
 	ws           api.WebSocketServer
 	commitReader ibft.Reader
 
+	readersMut     sync.RWMutex
+	decidedReaders map[string]ibft.Reader
+	netReaders     map[string]ibft.Reader
+
 	wsAPIPort                       int
 	ibftSyncEnabled                 bool
 	validatorMetaDataUpdateInterval time.Duration
@@ -109,6 +114,9 @@ func New(opts Options) Exporter {
 		networkReadersQueue:  tasks.NewExecutionQueue(readerQueuesInterval),
 		metaDataReadersQueue: tasks.NewExecutionQueue(metaDataReaderQueuesInterval),
 		ws:                   opts.WS,
+		readersMut:           sync.RWMutex{},
+		decidedReaders:       map[string]ibft.Reader{},
+		netReaders:           map[string]ibft.Reader{},
 		commitReader: ibft.NewCommitReader(ibft.CommitReaderOptions{
 			Logger:           opts.Logger,
 			Network:          opts.Network,
@@ -303,10 +311,10 @@ func (exp *exporter) setup(validatorShare *validatorstorage.Share) error {
 	pubKey := validatorShare.PublicKey.SerializeToHexStr()
 	logger := exp.logger.With(zap.String("pubKey", pubKey))
 	validator.ReportValidatorStatus(pubKey, validatorShare.Metadata, exp.logger)
-	decidedReader := exp.getDecidedReader(validatorShare)
+	decidedReader := exp.createDecidedReader(validatorShare)
 
 	// start network reader
-	networkReader := exp.getNetworkReader(validatorShare.PublicKey)
+	networkReader := exp.createNetworkReader(validatorShare.PublicKey)
 	exp.networkReadersQueue.QueueDistinct(networkReader.Start, pubKey)
 
 	// sync decided
@@ -325,24 +333,47 @@ func (exp *exporter) setup(validatorShare *validatorstorage.Share) error {
 	return nil
 }
 
-func (exp *exporter) getDecidedReader(validatorShare *validatorstorage.Share) ibft.SyncRead {
-	return ibft.NewDecidedReader(ibft.DecidedReaderOptions{
-		Logger:         exp.logger,
-		Storage:        exp.ibftStorage,
-		Network:        exp.network,
-		Config:         proto.DefaultConsensusParams(),
-		ValidatorShare: validatorShare,
-		Out:            exp.ws.OutboundSubject(),
-	})
+func (exp *exporter) createDecidedReader(validatorShare *validatorstorage.Share) ibft.SyncRead {
+	exp.readersMut.Lock()
+	defer exp.readersMut.Unlock()
+
+	pk := validatorShare.PublicKey.SerializeToHexStr()
+	if _, ok := exp.decidedReaders[pk]; !ok {
+		exp.decidedReaders[pk] = ibft.NewDecidedReader(ibft.DecidedReaderOptions{
+			Logger:         exp.logger,
+			Storage:        exp.ibftStorage,
+			Network:        exp.network,
+			Config:         proto.DefaultConsensusParams(),
+			ValidatorShare: validatorShare,
+			Out:            exp.ws.OutboundSubject(),
+		})
+	}
+
+	return exp.decidedReaders[pk].(ibft.SyncRead)
 }
 
-func (exp *exporter) getNetworkReader(validatorPubKey *bls.PublicKey) ibft.Reader {
-	return ibft.NewNetworkReader(ibft.IncomingMsgsReaderOptions{
-		Logger:  exp.logger,
-		Network: exp.network,
-		Config:  proto.DefaultConsensusParams(),
-		PK:      validatorPubKey,
-	})
+func (exp *exporter) getDecidedReader(pk string) ibft.Reader {
+	exp.readersMut.RLock()
+	defer exp.readersMut.RUnlock()
+
+	return exp.decidedReaders[pk]
+}
+
+func (exp *exporter) createNetworkReader(validatorPubKey *bls.PublicKey) ibft.Reader {
+	exp.readersMut.Lock()
+	defer exp.readersMut.Unlock()
+
+	pk := validatorPubKey.SerializeToHexStr()
+	if _, ok := exp.netReaders[pk]; !ok {
+		exp.netReaders[pk] = ibft.NewNetworkReader(ibft.IncomingMsgsReaderOptions{
+			Logger:  exp.logger,
+			Network: exp.network,
+			Config:  proto.DefaultConsensusParams(),
+			PK:      validatorPubKey,
+		})
+	}
+
+	return exp.netReaders[pk]
 }
 
 func (exp *exporter) reportOperators() {
