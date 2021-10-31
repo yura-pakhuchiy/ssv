@@ -16,6 +16,7 @@ import (
 	iaddr "github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	noise "github.com/libp2p/go-libp2p-noise"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	mdnsDiscover "github.com/libp2p/go-libp2p/p2p/discovery"
@@ -388,6 +389,10 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 		n.logger.Warn("bad peer", zap.String("peerID", info.ID.String()))
 		return errors.New("refused to connect to bad peer")
 	}
+	if n.host.Network().Connectedness(info.ID) == libp2pnetwork.Connected {
+		n.logger.Debug("skipped connected peer", zap.String("peer", info.String()))
+		return nil
+	}
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -400,12 +405,35 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 	return nil
 }
 
+// findNetworkPeersLoop will keep looking for peers in the network while the main context is not done
+func (n *p2pNetwork) findNetworkPeersLoop(interval time.Duration) {
+	for {
+		select {
+		case <-n.ctx.Done():
+			return
+		default:
+			n.logger.Debug("finding network peers")
+			if err := n.connectToBootnodes(); err != nil {
+				n.logger.Error("could not connect to bootnodes", zap.Error(err))
+			}
+			ctx, cancel := context.WithTimeout(n.ctx, interval)
+			n.listenForNewNodes(ctx)
+			cancel()
+		}
+	}
+}
+
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
-func (n *p2pNetwork) listenForNewNodes() {
+func (n *p2pNetwork) listenForNewNodes(ctx context.Context) {
 	iterator := n.dv5Listener.RandomNodes()
 	//iterator = enode.Filter(iterator, s.filterPeer)
 	defer iterator.Close()
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		// Exit if service's context is canceled
 		if n.ctx.Err() != nil {
 			break
