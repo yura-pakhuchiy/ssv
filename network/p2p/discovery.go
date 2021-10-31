@@ -407,6 +407,7 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 
 // findNetworkPeersLoop will keep looking for peers in the network while the main context is not done
 func (n *p2pNetwork) findNetworkPeersLoop(interval time.Duration) {
+	defer n.logger.Debug("findNetworkPeersLoop done")
 findNetworkPeersLoop:
 	for {
 		select {
@@ -416,6 +417,8 @@ findNetworkPeersLoop:
 			n.logger.Debug("finding network peers")
 			if err := n.connectToBootnodes(); err != nil {
 				n.logger.Error("could not connect to bootnodes", zap.Error(err))
+			} else {
+				n.logger.Debug("connected to bootnode")
 			}
 			ctx, cancel := context.WithTimeout(n.ctx, interval)
 			n.listenForNewNodes(ctx)
