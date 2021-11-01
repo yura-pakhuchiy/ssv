@@ -424,22 +424,17 @@ findNetworkPeersLoop:
 				n.logger.Debug("connected to bootnode")
 			}
 			ctx, cancel := context.WithTimeout(n.ctx, interval)
-			iterator := n.dv5Listener.RandomNodes()
-			//iterator = enode.Filter(iterator, s.filterPeer)
-
-			//timer := time.AfterFunc(interval, func() {
-			//	iterator.Close()
-			//})
-			n.listenForNewNodes(ctx, iterator)
-			iterator.Close()
+			n.listenForNewNodes(ctx)
 			cancel()
 		}
 	}
 }
 
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
-func (n *p2pNetwork) listenForNewNodes(ctx context.Context, iterator enode.Iterator) {
+func (n *p2pNetwork) listenForNewNodes(ctx context.Context) {
 	defer n.logger.Debug("listenForNewNodes done")
+	iterator := n.dv5Listener.RandomNodes()
+	defer iterator.Close()
 listenForNewNodes:
 	for {
 		select {
