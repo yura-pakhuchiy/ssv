@@ -10,33 +10,33 @@ import (
 	"github.com/bloxapp/ssv/utils/commons"
 	"github.com/bloxapp/ssv/utils/rsaencryption"
 	gcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/discover"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/enr"
 	iaddr "github.com/ipfs/go-ipfs-addr"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	noise "github.com/libp2p/go-libp2p-noise"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	mdnsDiscover "github.com/libp2p/go-libp2p/p2p/discovery"
 	libp2ptcp "github.com/libp2p/go-tcp-transport"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/pkg/errors"
 	"github.com/prysmaticlabs/go-bitfield"
 	"github.com/prysmaticlabs/prysm/shared/featureconfig"
 	"github.com/prysmaticlabs/prysm/shared/fileutil"
 	"github.com/prysmaticlabs/prysm/shared/iputils"
 	"go.opencensus.io/trace"
+	"go.uber.org/zap"
 	"net"
 	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 const (
@@ -339,8 +339,11 @@ func (n *p2pNetwork) createListener(ipAddr net.IP, privKey *ecdsa.PrivateKey) (*
 		}
 	}
 
+	logger := log.New()
+	logger.SetHandler(&dv5Logger{n.logger.With(zap.String("who", "dv5Logger"))})
 	dv5Cfg := discover.Config{
 		PrivateKey: privKey,
+		Log:        logger,
 	}
 	dv5Cfg.Bootnodes = []*enode.Node{}
 	for _, addr := range n.cfg.Discv5BootStrapAddr {
@@ -421,18 +424,22 @@ findNetworkPeersLoop:
 				n.logger.Debug("connected to bootnode")
 			}
 			ctx, cancel := context.WithTimeout(n.ctx, interval)
-			n.listenForNewNodes(ctx)
+			iterator := n.dv5Listener.RandomNodes()
+			//iterator = enode.Filter(iterator, s.filterPeer)
+
+			//timer := time.AfterFunc(interval, func() {
+			//	iterator.Close()
+			//})
+			n.listenForNewNodes(ctx, iterator)
+			iterator.Close()
 			cancel()
 		}
 	}
 }
 
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
-func (n *p2pNetwork) listenForNewNodes(ctx context.Context) {
+func (n *p2pNetwork) listenForNewNodes(ctx context.Context, iterator enode.Iterator) {
 	defer n.logger.Debug("listenForNewNodes done")
-	iterator := n.dv5Listener.RandomNodes()
-	//iterator = enode.Filter(iterator, s.filterPeer)
-	defer iterator.Close()
 listenForNewNodes:
 	for {
 		select {
@@ -442,7 +449,7 @@ listenForNewNodes:
 		}
 		// Exit if service's context is canceled
 		if n.ctx.Err() != nil {
-			break
+			break listenForNewNodes
 		}
 		if n.isPeerAtLimit(false /* inbound */) {
 			// Pause the main loop for a period to stop looking
@@ -659,4 +666,29 @@ func convertFromInterfacePrivKey(privkey crypto.PrivKey) *ecdsa.PrivateKey {
 	typeAssertedKey := (*ecdsa.PrivateKey)(privkey.(*crypto.Secp256k1PrivateKey))
 	typeAssertedKey.Curve = gcrypto.S256() // Temporary hack, so libp2p Secp256k1 is recognized as geth Secp256k1 in disc v5.1.
 	return typeAssertedKey
+}
+
+// dv5Logger implements log.Handler to track logs of discv5
+type dv5Logger struct {
+	logger *zap.Logger
+}
+
+// Log takes a record and uses the zap.Logger to print it
+func (dvl *dv5Logger) Log(r *log.Record) error {
+	switch r.Lvl {
+	case log.LvlTrace:
+		dvl.logger.Debug(r.Msg)
+	case log.LvlDebug:
+		dvl.logger.Debug(r.Msg)
+	case log.LvlInfo:
+		dvl.logger.Info(r.Msg)
+	case log.LvlWarn:
+		dvl.logger.Warn(r.Msg)
+	case log.LvlError:
+		dvl.logger.Error(r.Msg)
+	case log.LvlCrit:
+		dvl.logger.Error(r.Msg)
+	default:
+	}
+	return nil
 }
