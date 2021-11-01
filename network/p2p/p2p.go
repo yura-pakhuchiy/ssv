@@ -172,7 +172,8 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config) (network.Network,
 			n.logger.Error("Could not add bootnode to the exclusion list", zap.Error(err))
 			return nil, err
 		}
-		go n.findNetworkPeersLoop(10 * time.Minute)
+		//go n.findNetworkPeersLoop(10 * time.Minute)
+		go n.listenForNewNodes()
 
 		if n.cfg.HostAddress != "" {
 			a := net.JoinHostPort(n.cfg.HostAddress, fmt.Sprintf("%d", n.cfg.TCPPort))

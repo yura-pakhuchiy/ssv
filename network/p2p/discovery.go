@@ -69,7 +69,7 @@ type iListener interface {
 func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 	err := n.host.Connect(context.Background(), pi)
 	if err != nil {
-		n.logger.Error("error connecting to peer", zap.String("peer_id", pi.ID.Pretty()), zap.Error(err))
+		n.logger.Error("can't handle peer found connection", zap.String("peer_id", pi.ID.Pretty()), zap.Error(err))
 	}
 }
 
@@ -371,8 +371,7 @@ func (n *p2pNetwork) connectWithAllPeers(multiAddrs []ma.Multiaddr) {
 		// make each dial non-blocking
 		go func(info peer.AddrInfo) {
 			if err := n.connectWithPeer(n.ctx, info); err != nil {
-				//log.Print("Could not connect with peer ", info.String(), err)
-				//log.WithError(err).Tracef("Could not connect with peer %s", info.String()) TODO need to add log with trace level
+				n.logger.Error("can't connect to peer (connect with all peers)", zap.String("peerID", info.ID.String()))
 			}
 		}(info)
 	}
@@ -389,7 +388,6 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 	n.logger.Debug("connecting to peer", zap.String("peerID", info.ID.String()))
 
 	if n.peers.IsBad(info.ID) {
-		n.logger.Warn("bad peer", zap.String("peerID", info.ID.String()))
 		return errors.New("refused to connect to bad peer")
 	}
 	if n.host.Network().Connectedness(info.ID) == libp2pnetwork.Connected {
@@ -400,8 +398,7 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 	defer cancel()
 
 	if err := n.host.Connect(ctx, info); err != nil {
-		n.logger.Warn("failed to connect to peer", zap.String("peerID", info.ID.String()), zap.Error(err))
-		return err
+		return errors.Wrap(err, "failed to connect to peer")
 	}
 	n.logger.Debug("connected to peer", zap.String("peerID", info.ID.String()))
 
@@ -409,43 +406,37 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 }
 
 // findNetworkPeersLoop will keep looking for peers in the network while the main context is not done
-func (n *p2pNetwork) findNetworkPeersLoop(interval time.Duration) {
-	defer n.logger.Debug("findNetworkPeersLoop done")
-findNetworkPeersLoop:
-	for {
-		select {
-		case <-n.ctx.Done():
-			break findNetworkPeersLoop
-		default:
-			n.logger.Debug("finding network peers")
-			if err := n.connectToBootnodes(); err != nil {
-				n.logger.Error("could not connect to bootnodes", zap.Error(err))
-			} else {
-				n.logger.Debug("connected to bootnode")
-			}
-			ctx, cancel := context.WithTimeout(n.ctx, interval)
-			n.listenForNewNodes(ctx)
-			cancel()
-		}
-	}
-}
+//func (n *p2pNetwork) findNetworkPeersLoop(interval time.Duration) {
+//	defer n.logger.Debug("findNetworkPeersLoop done")
+//findNetworkPeersLoop:
+//	for {
+//		select {
+//		case <-n.ctx.Done():
+//			break findNetworkPeersLoop
+//		default:
+//			n.logger.Debug("finding network peers")
+//			if err := n.connectToBootnodes(); err != nil {
+//				n.logger.Error("could not connect to bootnodes", zap.Error(err))
+//			} else {
+//				n.logger.Debug("connected to bootnode")
+//			}
+//			ctx, cancel := context.WithTimeout(n.ctx, interval)
+//			n.listenForNewNodes(ctx)
+//			cancel()
+//		}
+//	}
+//}
 
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
-func (n *p2pNetwork) listenForNewNodes(ctx context.Context) {
+func (n *p2pNetwork) listenForNewNodes() {
 	defer n.logger.Debug("listenForNewNodes done")
 	iterator := n.dv5Listener.RandomNodes()
 	defer iterator.Close()
 	n.logger.Debug("starting to listen for new nodes")
-listenForNewNodes:
 	for {
-		select {
-		case <-ctx.Done():
-			break listenForNewNodes
-		default:
-		}
 		// Exit if service's context is canceled
 		if n.ctx.Err() != nil {
-			break listenForNewNodes
+			break
 		}
 		if n.isPeerAtLimit(false /* inbound */) {
 			// Pause the main loop for a period to stop looking
@@ -465,7 +456,9 @@ listenForNewNodes:
 			continue
 		}
 		go func(info *peer.AddrInfo) {
-			_ = n.connectWithPeer(n.ctx, *info)
+			if err := n.connectWithPeer(n.ctx, *info); err != nil {
+				n.logger.Error("can't connect with peer", zap.String("peerID", info.ID.String()), zap.Error(err))
+			}
 		}(peerInfo)
 	}
 }
