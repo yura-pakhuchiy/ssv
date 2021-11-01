@@ -435,6 +435,7 @@ func (n *p2pNetwork) listenForNewNodes(ctx context.Context) {
 	defer n.logger.Debug("listenForNewNodes done")
 	iterator := n.dv5Listener.RandomNodes()
 	defer iterator.Close()
+	n.logger.Debug("starting to listen for new nodes")
 listenForNewNodes:
 	for {
 		select {
@@ -460,14 +461,11 @@ listenForNewNodes:
 		node := iterator.Node()
 		peerInfo, _, err := convertToAddrInfo(node)
 		if err != nil {
-			//log.WithError(err).Error("Could not convert to peer info")
+			n.logger.Warn("could not convert node to peer info", zap.Error(err))
 			continue
 		}
 		go func(info *peer.AddrInfo) {
-			if err := n.connectWithPeer(n.ctx, *info); err != nil {
-				//log.WithError(err).Tracef("Could not connect with peer %s", info.String())
-				//log.Print(err) TODO need to add log with trace level
-			}
+			_ = n.connectWithPeer(n.ctx, *info)
 		}(peerInfo)
 	}
 }
