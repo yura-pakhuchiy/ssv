@@ -407,14 +407,18 @@ func (n *p2pNetwork) connectWithPeer(ctx context.Context, info peer.AddrInfo) er
 
 // findNetworkPeersLoop will keep looking for peers in the network while the main context is not done
 func (n *p2pNetwork) findNetworkPeersLoop(interval time.Duration) {
+	defer n.logger.Debug("findNetworkPeersLoop done")
+findNetworkPeersLoop:
 	for {
 		select {
 		case <-n.ctx.Done():
-			return
+			break findNetworkPeersLoop
 		default:
 			n.logger.Debug("finding network peers")
 			if err := n.connectToBootnodes(); err != nil {
 				n.logger.Error("could not connect to bootnodes", zap.Error(err))
+			} else {
+				n.logger.Debug("connected to bootnode")
 			}
 			ctx, cancel := context.WithTimeout(n.ctx, interval)
 			n.listenForNewNodes(ctx)
@@ -425,13 +429,15 @@ func (n *p2pNetwork) findNetworkPeersLoop(interval time.Duration) {
 
 // listen for new nodes watches for new nodes in the network and adds them to the peerstore.
 func (n *p2pNetwork) listenForNewNodes(ctx context.Context) {
+	defer n.logger.Debug("listenForNewNodes done")
 	iterator := n.dv5Listener.RandomNodes()
 	//iterator = enode.Filter(iterator, s.filterPeer)
 	defer iterator.Close()
+listenForNewNodes:
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			break listenForNewNodes
 		default:
 		}
 		// Exit if service's context is canceled
